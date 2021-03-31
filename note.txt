@@ -1,0 +1,10 @@
+
+# Requirements
+sudo apt install python3 python3-pip
+pip3 install pillow numpy moviepy scipy opencv-python lmdb click requests tqdm pyspng ninja imageio-ffmpeg==0.4.3 Flask flask_cors torchvision tensorboard torch psutil
+ 
+#launch the endpoint 
+python3 app.py &> out_server.txt &
+
+# Trainning
+python3 train.py --outdir=training-runs --data=datasets/waifus.zip --resume=training-runs/00009-waifus-auto1-batch4-resumeffhq512/network-snapshot-000320.pkl --snap=10 --gpus=1 --batch=2 &> out.txt &
