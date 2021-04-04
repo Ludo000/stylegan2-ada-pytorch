@@ -1,0 +1,5 @@
+{
+    "device" : "cpu",
+    "outdir" : "out",
+    "network_pkl" : "network-snapshot.pkl"
+}

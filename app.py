@@ -31,11 +31,14 @@ from utils import represents_int
 app = Flask(__name__)
 CORS(app, support_credentials=True)
 
-network_pkl = "network-snapshot.pkl"
-outdir = "out"
-print('Loading networks from "%s"...' % network_pkl)
-os.makedirs(outdir, exist_ok=True)
-device = torch.device('cuda')
+
+with open('config.json') as json_file:
+    data = json.load(json_file)
+    device = torch.device(data['device'])
+    network_pkl = data['network_pkl']
+    outdir = data['outdir']
+    print('Loading networks from "%s"...' % network_pkl)
+    os.makedirs(outdir, exist_ok=True)
 with dnnlib.util.open_url(network_pkl) as f:
     G = legacy.load_network_pkl(f)['G_ema'].to(device) # type: ignore
 label = torch.zeros([1, G.c_dim], device=device)
@@ -48,7 +51,8 @@ def endpoint_generate_waifu():
             request.args.get('seed'),
             1,
             'out',
-            'const'
+            'const',
+            data['device']
         )
 
 @app.route('/breed', methods=['GET'])
@@ -91,7 +95,8 @@ def generate_waifu(
     seed: str,
     truncation_psi: float,
     outdir: str,
-    noise_mode: str
+    noise_mode: str,
+    device: str
 ):
     if seed is not None:
         img_path = f'{outdir}/{seed:s}.png'
@@ -103,7 +108,10 @@ def generate_waifu(
             hash = sha256(seed.encode('utf-8'))
             seed_digest = np.frombuffer(hash.digest(), dtype='uint32')
             z = torch.from_numpy(np.random.RandomState(seed_digest).randn(1, G.z_dim)).to(device)
-            img = G(z, label, truncation_psi=truncation_psi, noise_mode=noise_mode)
+            if(device == 'cpu'):
+                img = G(z, label, truncation_psi=truncation_psi, noise_mode=noise_mode, force_fp32=True)
+            else:
+                img = G(z, label, truncation_psi=truncation_psi, noise_mode=noise_mode)
             img = (img.permute(0, 2, 3, 1) * 127.5 + 128).clamp(0, 255).to(torch.uint8)
             PIL.Image.fromarray(img[0].cpu().numpy(), 'RGB').save(img_path)
 
